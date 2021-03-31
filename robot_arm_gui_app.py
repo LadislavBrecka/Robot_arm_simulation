@@ -1,9 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.widgets import RadioButtons, Slider
+from matplotlib.widgets import RadioButtons, Slider, CheckButtons
 from pandas.plotting import register_matplotlib_converters
 import matrix_library
+import math
+import matplotlib.style
+
 register_matplotlib_converters()
+matplotlib.style.use('ggplot')
 
 
 class Robot_Arm_Gui:
@@ -34,11 +38,14 @@ class Robot_Arm_Gui:
         self.B_coord = []
         self.C_coord = []
 
-        self.radio = None
+        self.radio_obalka = None
+        self.button_axes = None
         self.slider_1 = None
         self.slider_2 = None
         self.slider_3 = None
-        self.func = None
+
+        self.func_obalka = None
+        self.plotted_axes = [False, False, False, False, False, False, False]
         self.subplot_axes = []
 
         self.obalka = True
@@ -88,6 +95,12 @@ class Robot_Arm_Gui:
     # Function which plots robotic arm to 3D plane with specified angle to specified ax
     def plot_arm(self, ax, angle):
 
+        # Plot obalka if radio button is selected for it
+        if self.obalka:
+            ax.plot(self.xvalues_C_obalka_1, self.yvalues_C_obalka_1, self.zvalues_C_obalka_1, color='blue')
+            ax.plot(self.xvalues_C_obalka_1, self.yvalues_C_obalka_1, self.zvalues_C_obalka_1, color='blue')
+            ax.plot(self.xvalues_C_obalka_2, self.yvalues_C_obalka_2, self.zvalues_C_obalka_2, color='green')
+
         # Plot joins
         ax.scatter3D([self.A_coord[0]], [self.A_coord[1]], [self.A_coord[2]], 'o', color='red', s=34)
         ax.scatter3D([self.B_coord[0]], [self.B_coord[1]], [self.B_coord[2]], 'o', color='red', s=34)
@@ -98,27 +111,89 @@ class Robot_Arm_Gui:
         ax.plot([self.A_coord[0], self.B_coord[0]], [self.A_coord[1], self.B_coord[1]], [self.A_coord[2], self.B_coord[2]], color='black', linewidth=4)
         ax.plot([self.B_coord[0], self.C_coord[0]], [self.B_coord[1], self.C_coord[1]], [self.B_coord[2], self.C_coord[2]], color='black', linewidth=4)
 
-        # Plot obalka if radio button is selected for it
-        if self.obalka:
-            ax.plot(self.xvalues_C_obalka_1, self.yvalues_C_obalka_1, self.zvalues_C_obalka_1, color='blue')
-            ax.plot(self.xvalues_C_obalka_1, self.yvalues_C_obalka_1, self.zvalues_C_obalka_1, color='blue')
-            ax.plot(self.xvalues_C_obalka_2, self.yvalues_C_obalka_2, self.zvalues_C_obalka_2, color='green')
+        # Plot coordinate axes
+        if self.plotted_axes[0]:
+            ax.plot([0, 0], [0, 0], [0, 80], color='green', linewidth=2)
+            ax.plot([0, 0], [0, 80], [0, 0], color='yellow', linewidth=2)
+            ax.plot([0, 80], [0, 0], [0, 0], color='blue', linewidth=2)
+
+        if self.plotted_axes[1]:
+            r = matrix_library.rotation('z', self.old_fi_1)
+            a0_y = np.matmul(r, [0, 80, 0, 1])
+            a0_x = np.matmul(r, [80, 0, 0, 1])
+            a0_z = np.matmul(r, [0, 0, 80, 1])
+            ax.plot([0, a0_z[0]], [0, a0_z[1]], [0, a0_z[2]], color='green', linewidth=2)
+            ax.plot([0, a0_y[0]], [0, a0_y[1]], [0, a0_y[2]], color='orange', linewidth=2)
+            ax.plot([0, a0_x[0]], [0, a0_x[1]], [0, a0_x[2]], color='blue', linewidth=2)
+
+        if self.plotted_axes[2]:
+            r1 = matrix_library.rotation('z', self.old_fi_1)
+            a0_y = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), [0, 80, 0, 1])
+            a0_x = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), [80, 0, 0, 1])
+            a0_z = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), [0, 0, 80, 1])
+            ax.plot([self.A_coord[0], a0_z[0]], [self.A_coord[1], a0_z[1]], [self.A_coord[2], a0_z[2]], color='green', linewidth=2)
+            ax.plot([self.A_coord[0], a0_y[0]], [self.A_coord[1], a0_y[1]], [self.A_coord[2], a0_y[2]], color='orange',linewidth=2)
+            ax.plot([self.A_coord[0], a0_x[0]], [self.A_coord[1], a0_x[1]], [self.A_coord[2], a0_x[2]], color='blue',linewidth=2)
+
+        if self.plotted_axes[3]:
+            r1 = matrix_library.rotation('z', self.old_fi_1)
+            r2 = matrix_library.rotation('y', self.old_fi_2)
+            a0_y = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(r2, [0, 80, 0, 1]))
+            a0_x = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(r2, [80, 0, 0, 1]))
+            a0_z = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(r2, [0, 0, 80, 1]))
+            ax.plot([self.A_coord[0], a0_z[0]], [self.A_coord[1], a0_z[1]], [self.A_coord[2], a0_z[2]], color='green', linewidth=2)
+            ax.plot([self.A_coord[0], a0_y[0]], [self.A_coord[1], a0_y[1]], [self.A_coord[2], a0_y[2]], color='orange', linewidth=2)
+            ax.plot([self.A_coord[0], a0_x[0]], [self.A_coord[1], a0_x[1]], [self.A_coord[2], a0_x[2]], color='blue', linewidth=2)
+
+        if self.plotted_axes[4]:
+            r1 = matrix_library.rotation('z', self.old_fi_1)
+            r2 = matrix_library.rotation('y', self.old_fi_2)
+            a0_y = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), [0, 80, 0, 1]))
+            a0_x = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), [80, 0, 0, 1]))
+            a0_z = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), [0, 0, 80, 1]))
+            ax.plot([self.B_coord[0], a0_z[0]], [self.B_coord[1], a0_z[1]], [self.B_coord[2], a0_z[2]], color='green', linewidth=2)
+            ax.plot([self.B_coord[0], a0_y[0]], [self.B_coord[1], a0_y[1]], [self.B_coord[2], a0_y[2]], color='orange', linewidth=2)
+            ax.plot([self.B_coord[0], a0_x[0]], [self.B_coord[1], a0_x[1]], [self.B_coord[2], a0_x[2]], color='blue', linewidth=2)
+
+        if self.plotted_axes[5]:
+            r1 = matrix_library.rotation('z', self.old_fi_1)
+            r2 = matrix_library.rotation('y', self.old_fi_2)
+            r3 = matrix_library.rotation('y', self.old_fi_3)
+            a0_y = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(r3, [0, 80, 0, 1])))
+            a0_x = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(r3, [80, 0, 0, 1])))
+            a0_z = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(r3, [0, 0, 80, 1])))
+            ax.plot([self.B_coord[0], a0_z[0]], [self.B_coord[1], a0_z[1]], [self.B_coord[2], a0_z[2]], color='green', linewidth=2)
+            ax.plot([self.B_coord[0], a0_y[0]], [self.B_coord[1], a0_y[1]], [self.B_coord[2], a0_y[2]], color='orange', linewidth=2)
+            ax.plot([self.B_coord[0], a0_x[0]], [self.B_coord[1], a0_x[1]], [self.B_coord[2], a0_x[2]], color='blue', linewidth=2)
+
+        if self.plotted_axes[6]:
+            r1 = matrix_library.rotation('z', self.old_fi_1)
+            r2 = matrix_library.rotation('y', self.old_fi_2)
+            r3 = matrix_library.rotation('y', self.old_fi_3)
+            a0_y = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(np.matmul(r3, matrix_library.transition('z', self.l3)), [0, 80, 0, 1])))
+            a0_x = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(np.matmul(r3, matrix_library.transition('z', self.l3)), [80, 0, 0, 1])))
+            a0_z = np.matmul(np.matmul(r1, matrix_library.transition('z', self.l1)), np.matmul(np.matmul(r2, matrix_library.transition('z', self.l2)), np.matmul(np.matmul(r3, matrix_library.transition('z', self.l3)), [0, 0, 80, 1])))
+            ax.plot([self.C_coord[0], a0_z[0]], [self.C_coord[1], a0_z[1]], [self.C_coord[2], a0_z[2]], color='green', linewidth=2)
+            ax.plot([self.C_coord[0], a0_y[0]], [self.C_coord[1], a0_y[1]], [self.C_coord[2], a0_y[2]], color='orange', linewidth=2)
+            ax.plot([self.C_coord[0], a0_x[0]], [self.C_coord[1], a0_x[1]], [self.C_coord[2], a0_x[2]], color='blue', linewidth=2)
 
         # Plot coordinates
-        ax.set_xlabel('x')
-        ax.set_ylabel('y')
-        ax.set_zlabel('z')
-        ax.set_xlim(-400,400)
-        ax.set_ylim(-400,400)
-        ax.set_zlim(-100,400)
+        ax.set_xlabel('x', fontweight='bold')
+        ax.set_ylabel('y', fontweight='bold')
+        ax.set_zlabel('z', fontweight='bold')
+        ax.set_xlim(-400, 400)
+        ax.set_ylim(-400, 400)
+        ax.set_zlim(-100, 400)
+        ax.set_yticks([-300, 0, 300])
+        ax.set_xticks([-300, 0, 300])
+        ax.set_zticks([0, 300])
         ax.view_init(30, angle)
-
         plt.draw()
 
     def setup_gui(self):
 
         # Setting figure
-        fig1 = plt.figure(figsize=(10, 9))
+        fig1 = plt.figure(figsize=(10, 10))
         fig1.subplots_adjust(left=0.3, wspace=0.2, hspace=0.3)
 
         # Setting up axes
@@ -135,22 +210,28 @@ class Robot_Arm_Gui:
 
         # Title of figure
         fig1.suptitle('Zobrazenie robota v 3D priestore')
+        fig1.text(0.11, 0.9, 'Volba sur. \nsystemov', rotation='horizontal', verticalalignment='center', fontsize='large')
 
         # Creating radio button for changing which series to plot
-        rax = plt.axes([0.05, 0.7, 0.15, 0.15])
-        self.radio = RadioButtons(rax, ('S obalkou', 'Bez obalky'))
-        self.func = {'S obalkou': True, 'Bez obalky': False}
+        rdb_obalka = plt.axes([0.05, 0.65, 0.15, 0.15])
+        self.radio_obalka = RadioButtons(rdb_obalka, ('S obalkou', 'Bez obalky'))
+        self.func_obalka = {'S obalkou': True, 'Bez obalky': False}
+
+        # Creating check box for axes
+        btn_axes = plt.axes([0.05, 0.83, 0.15, 0.15])
+        self.button_axes = CheckButtons(btn_axes, ('0', '1', '2', '3', '4', '5', '6'))
 
         # Creating slider for changing filter constant
         fi_1_slider = plt.axes([0.05, 0.1, 0.03, 0.5])
         fi_2_slider = plt.axes([0.10, 0.1, 0.03, 0.5])
         fi_3_slider = plt.axes([0.15, 0.1, 0.03, 0.5])
-        self.slider_1 = Slider(fi_1_slider, 'Fi_1', orientation='vertical', valmin=self.fi_1_limit[0],valmax=self.fi_1_limit[1],valinit=0.0,valstep=self.step)
-        self.slider_2 = Slider(fi_2_slider, 'Fi_2', orientation='vertical', valmin=self.fi_2_limit[0],valmax=self.fi_2_limit[1],valinit=0.0,valstep=self.step)
-        self.slider_3 = Slider(fi_3_slider, 'Fi_3', orientation='vertical', valmin=self.fi_3_limit[0],valmax=self.fi_3_limit[1],valinit=0.0,valstep=self.step)
+        self.slider_1 = Slider(fi_1_slider, 'φ1 [°]', orientation='vertical', valmin=math.degrees(self.fi_1_limit[0]),valmax=math.degrees(self.fi_1_limit[1]),valinit=0.0, valstep=math.degrees(self.step))
+        self.slider_2 = Slider(fi_2_slider, 'φ2 [°]', orientation='vertical', valmin=math.degrees(self.fi_2_limit[0]),valmax=math.degrees(self.fi_2_limit[1]),valinit=0.0, valstep=math.degrees(self.step))
+        self.slider_3 = Slider(fi_3_slider, 'φ3 [°]', orientation='vertical', valmin=math.degrees(self.fi_3_limit[0]),valmax=math.degrees(self.fi_3_limit[1]),valinit=0.0, valstep=math.degrees(self.step))
 
-        # Assign a function handler to a button and slider
-        self.radio.on_clicked(self.__radioButton_update)
+        # Assign a function handler to a buttons and sliders
+        self.radio_obalka.on_clicked(self.__radio_button_update)
+        self.button_axes.on_clicked(self.__button_update)
         self.slider_1.on_changed(self.__slider_1_update)
         self.slider_2.on_changed(self.__slider_2_update)
         self.slider_3.on_changed(self.__slider_3_update)
@@ -159,16 +240,23 @@ class Robot_Arm_Gui:
         self.redraw_axes()
 
     # Handler for radio button
-    def __radioButton_update(self, label):
+    def __radio_button_update(self, label):
         # Updating which data will be plotted
-        self.obalka = self.func[label]
-        print(self.obalka)
+        self.obalka = self.func_obalka[label]
         self.redraw_axes()
 
+    def __button_update(self, label):
+        index = int(label)
+        if self.plotted_axes[index]:
+            self.plotted_axes[index] = False
+        else:
+            self.plotted_axes[index] = True
+        self.redraw_axes()
+        
     # Handler for slider 1
     def __slider_1_update(self, val):
         # Updating filter constant
-        fi_1 = self.slider_1.val
+        fi_1 = math.radians(self.slider_1.val)
         # Updating subplots by class function
         self.update_arm(fi_1, None, None)
         self.redraw_axes()
@@ -176,7 +264,7 @@ class Robot_Arm_Gui:
     # Handler for slider 2
     def __slider_2_update(self, val):
         # Updating filter constant
-        fi_2 = self.slider_2.val
+        fi_2 = math.radians(self.slider_2.val)
         # Updating subplots by class function
         self.update_arm(None, fi_2, None)
         self.redraw_axes()
@@ -184,7 +272,7 @@ class Robot_Arm_Gui:
     # Handler for slider 3
     def __slider_3_update(self, val):
         # Updating filter constant
-        fi_3 = self.slider_3.val
+        fi_3 = math.radians(self.slider_3.val)
         # Updating subplots by class function
         self.update_arm(None, None, fi_3)
         self.redraw_axes()

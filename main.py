@@ -1,11 +1,11 @@
-import interactive_animation
+import pygame_interactive_animation
 from robot_arm_gui_app import Robot_Arm_Gui
 from multiprocessing import Process
 import matplotlib.pyplot as plt
 
 
 def func1():
-    interactive_animation.run()
+    pygame_interactive_animation.run()
 
 
 def func2():
