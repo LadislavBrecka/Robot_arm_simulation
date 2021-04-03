@@ -193,7 +193,7 @@ class Robot_Arm_Gui:
     def setup_gui(self):
 
         # Setting figure
-        fig1 = plt.figure(figsize=(10, 10))
+        fig1 = plt.figure(figsize=(10,9)) 
         fig1.subplots_adjust(left=0.3, wspace=0.2, hspace=0.3)
 
         # Setting up axes
